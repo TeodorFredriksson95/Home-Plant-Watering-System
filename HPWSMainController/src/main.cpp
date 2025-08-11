@@ -9,7 +9,7 @@ WiFiServer server(80);
 int ledPin = 5;
 unsigned long lastSendTime = 0;
 const unsigned long sendInterval = 10000; // 10 second interval between loop() executions
-const int moistureThreshold = 400; //this is currently using the raw analog value range and 400 could be considered to represent approxiamtely 38% moisture level
+const int moistureThreshold = 613; //this is currently using the raw analog value range and 400 could be considered to represent approxiamtely 38% moisture level
 
 void sendMockValue() {
   HTTPClient http;
@@ -27,7 +27,7 @@ int getMoisture() {
   HTTPClient http;
   String url = "http://" + String(ESP8266_IP) + "/soil-moisture";
   http.begin(url);
-  int code = http.GET();
+  int code = http.GET();  
   int moisture = -1;
 
   if (code > 0){
