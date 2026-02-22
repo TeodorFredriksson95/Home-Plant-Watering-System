@@ -18,7 +18,7 @@ The system follows a **client-server architecture**:
 
 ---
 
-##Core Components
+## Core Components
 
 ### Mini Controller – ESP8266 (Server)
 
