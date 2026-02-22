@@ -1,122 +1,266 @@
-This project features the creation of an automated plant watering system designed to be used for in-door plants. In short, the project features the following:
+# HPWS – Home Plant Watering System
 
-- A micro controller (ESP8266) which acts as a server in a client-server ecosystem. Its responsibilites are:
-    -- To recieve analog data from a soil humidity sensor and convert it to a digital value.
-    -- To control the flow of current to a peristaltic pump via a MOSFET. The amount of time the MOSFET is considered open is determined by a dynamic value sent by the main control unit.
-    -- To respond with soil humidity values over HTTP when requested by the main control unit.
+This project documents the development of an automated indoor plant watering system.
 
-- A capicitve soil humidity sensor. Its responsibilites are:
-    -- To send analog values representing the soil humidity levels.
+The goal is twofold:
+1. Build a fully functional automated watering system for personal use.
+2. Eventually create a beginner-friendly "How-To" electronics guide based on the process (planned, not yet started).
 
-- A peristaltic pump. Its responsibilites are:
-    -- To pump water from a water container to a branching system which leads the water to different areas of a 50x20 flower pot.
+---
 
-- A main control unit (ESP32), acting as the client in a server-client ecosystem. Its responsibilites are:
-    -- To store benchmark values for soil humidity which actual soil humidity values are compared against.
-    -- To request actual soil humidity values from the micro controller via HTTP request.
-    -- To determine whether or not the actual value is above or below the benchmark value for soil humidity.
-    -- To determine for how long the pump should be powered based on the actual soil humidity value and the desired soil humidity value.
-    -- To allow for scaleability of the watering system by offering options to integrate more micro controllers, each connected to their own pump and plant/soil area, with the main control unit.
+## System Architecture
 
-Through documenting the steps I take during this learning process, my personal goal is, beyond creating a fully functional automated watering system for my own plants, to create a "How-to" guide for others who might want to dive into electronics. This part of the project is yet to be decided, as I am still fully focused on completing the prototypes.
+The system follows a **client-server architecture**:
 
+- **Main Control Unit (ESP32)** → Client
+- **Mini Controller (ESP8266)** → Server
+- Communication via HTTP + JSON
 
-19/7-2025
-* CPP, Arduino and PlatformIO IDE Setup
--- Set up ESP32 Devboard.
--- Verified first build and initial upload completed.
+---
 
-20/7-2025
--- Connected ESP32 Devkit to WIFI. Need a LED to further test I/O flow.
+## 🔌 Core Components
 
-21/7-2025
--- Prepared physical connection between breadboard --> ESP32 Devboard --> MT3608 regulator OUT/IN --> 3.7V litihum battery.
--- Set up basic "Workflow & Diagnosis" schema in physical notebook.
+### Mini Controller – ESP8266 (Server)
 
-22/7-2025
--- Tested electrical components of ESP8266 --> MT3608
+**Responsibilities:**
+- Read analog data from capacitive soil humidity sensor
+- Convert analog signal to digital value
+- Control peristaltic pump via MOSFET
+- Respond to HTTP requests with soil humidity values
+- Receive pump runtime instructions from main controller
 
-23/7-2025
--- Spliced and connected wires from battery --> MT3608
--- Soldered MT3608 IN/OUT +/- pins
--- Soldered MT3608 pentiometer connector pins
--- Connected MT3608 to ESP32
--- External battery supply for ESP32 is now working. Proceed with ESP8266 Wifi connectivity.
+---
 
+### 2️⃣ Capacitive Soil Humidity Sensor
 
-25/7-2025
-* HPWS Mini Controller (ESP8266)
--- Initialized Mini Controller One project, intended to read analog sensor data --> send/recieve data to/from ESP32 --> control peristaltic pump via MOSFET
--- Verified that intialization and setup is building correctly
+**Responsibilities:**
+- Send analog signal representing soil humidity level
 
-26/7-2025
--- Connected MOSFET logic SIG/VCC/GND to ESP8266
--- Connected MOSFET power VIN and GND to MT3608
-    --* Realized I'm 1 MT3608 short. The peristaltic pump is going to need 12V via the MOSFET and thus I can't let the 5V ESP8266 draw power from the same MT3608. Buy another.
--- Tested MOSFET voltage output on signal from ESP8266 signal pin (D1). Successfully reaches 12V and 0V respectively on set intervals
--- Created endpoint on ESP8266 and registered as server. ESp32 successfully sends mockdata to this endpoint and recieves a response.
+**Important Discovery:**
+- Lower analog value = more moisture
+- Higher analog value = dryer soil
+- ~0 → Very wet
+- ~1037 → Very dry
 
+---
 
-* * Later note (6/8-2025)
--- I was actually NOT 1 MT3608 short. The product description of the peristaltic pump says 12-24V in the product title. However, upon arrival, the label on the pump itself reads 5V. So, a single MT3608 can in fact power both the ESP8266 AND the MOSFET --> pump. If that is unwise due to other factors, they are still unbeknownst to me.
+### Peristaltic Pump
 
-27/7-2025
-* HPWS Electronics Components
--- Connected capcitive soil sensor to ESP8266
+**Responsibilities:**
+- Pump water from container
+- Feed branching hose system
+- Distribute water across 50x20cm flower pot
 
-* HPWS Main & Mini Controller 1
--- Registered endpoint for reading soil data
--- Successfully sent request from ESP32 to ESP8266, recieving soil value within the expected range (645 out of 1037)
+**Correction (6/8/2025):**
+Product title listed **12–24V**, but pump label states **5V**.  
+Single MT3608 boost converter can power both ESP8266 and pump.
 
-* * Later note (6/8-2025)
--- In my code currently I have messed up what end of the value spectrum of the soil humidity values that represents dry versus humid. When the sensor is exposed to thin air, the value I recieve is around 637. Adding moisture to the sensor lowers the value, which must mean that 0 represents wet as water, and 1037 represents dry as sand.
+---
 
+### Main Control Unit – ESP32 (Client)
 
-28/7-2025
-* HPWS Main Controller
--- Tested and refactored mock data request code to a handler and changed it from GET to POST
+**Responsibilities:**
+- Store soil humidity benchmark values
+- Request real-time soil data via HTTP
+- Compare actual humidity vs benchmark
+- Calculate pump runtime dynamically
+- Send pump activation instructions
+- Designed for scalability (multiple mini controllers)
 
-29/7-2025
-* HWPS Controllers
--- Changed all HTTP requests handle json instead of using query params
--- Added Start-pump endpoint and request
+---
 
-31/7-2025
-* HPWS
--- Peristaltic pumps arrived
--- Soldered diode and pump wires together. Connected diodes + wires to MOSFET V+/V- screwhouse
--- Connected pump to MOSFET and MT3608
--- Electronics prototype is getting close to functioning as expected.
+# Development Log
 
-* HPWS To-Do
--- Test prototype using endpoints
--- Implement interval for deep sleep for ESP32
--- Test prototype with deep sleep
--- Figure out algorithm for how much water should be dispensed based on soil humidity benchmark (ie, how many seconds to run the pump for)
--- Analyize battery usage when fully operational
--- Build protoype for physical components setup
--- Attach pump hose to water container and make sure the connection is waterproof to prevent leakage between pump hose and water container
+---
 
-1/8-2025
-* HPWS
--- Turned one of the MT3608's back down to 5v output. Means I can actually go back to using 2 MT's for the entire setup. The pump needs 5v, don't know where I got 12V from. Oh right, it says so on the product information section..
+## 19/7/2025
+### Setup
+- Installed CPP, Arduino & PlatformIO
+- Set up ESP32 Devboard
+- Verified first successful build and upload
 
--- Updated endpoints and requests to operate based on real soil humidity levels instead of mock levels.
+---
 
-* * HPWS Testing
--- I must've gotten the analog values wrong. 0 must surely represent a humidity percentage level of 100%, and 1037 must represent a humidity percentage level of 0. Right now the benchmark value is set to 400, and in open air the sensor returns 637. Adding water to the sensor reduces the value as opposed to increasing it, which would be expected.
+## 20/7/2025
+- Connected ESP32 to WiFi
+- Need LED to further test I/O flow
 
--- If ESP32 for some reason disconnect from ESP8266, there is no reconnection. I semi-shortcircuited the ESP8266 from the battery, which caused the ESP8266 circuit to malfunction. It rebooted fine, but after successful reboot ESP32 no longer had a connection to ESP8266. That's logical, however, as ESP8266 disconnected, ESP32 stopped sending HTTP requests, which is the main bug. Normally, the ESP32 sends requests based on its set interval, even if there is no connection to the ESP8266. Why would a disconnect on ESP8266 end interrupt ESP32's loop cycle? Even further, I'm pretty sure it's not just a disconnect that causes this, but rather the short circuit. Because if I disconnect the battery from the ESP8266, and then reconnect it, the ESP32 loop works just fine. I have to double check this.
+---
 
-* * * HPWS TO-DO
--- Reverse humidity benchmark values
--- Implement deep sleep intervals for ESP32
--- Test deep sleep intervals for ESP32. The intervals can be short during testing
--- Verify what happens when I disconnect the battery from the ESP8266 during an otherwise successfully established connection with ESP32, and verify what happens when I reconnect the battery.
--- Test the voltage spike during MOSFET OFF-switch. Does the diode do its job or is it redundant?
+## 21/7/2025
+- Connected:
+  - Breadboard → ESP32
+  - MT3608 regulator
+  - 3.7V lithium battery
+- Created physical “Workflow & Diagnosis” schema in notebook
 
-3/8-2025
-* HPWS
--- Spent the day creating schematics for the Main and Mini Controllers systems
--- Prepared PCB for Mini Controller system
--- It's obvious I need to look into perfboards and prototype on that before going forward with PCB
+---
+
+## 22/7/2025
+- Tested ESP8266 → MT3608 electrical components
+
+---
+
+## 23/7/2025
+- Spliced battery wires → MT3608
+- Soldered MT3608 IN/OUT +/- pins
+- Soldered potentiometer pins
+- Connected MT3608 → ESP32
+- Confirmed external battery power works
+- Proceeding with ESP8266 WiFi connectivity
+
+---
+
+## 25/7/2025
+### HPWS Mini Controller (ESP8266)
+- Initialized project
+- Confirmed build + setup working
+- Designed for:
+  - Sensor reading
+  - ESP32 communication
+  - MOSFET pump control
+
+---
+
+## 26/7/2025
+- Connected MOSFET (SIG/VCC/GND) → ESP8266
+- Connected MOSFET VIN/GND → MT3608
+- Initially thought pump required 12V (later corrected)
+
+### Testing
+- Verified MOSFET switching between 12V and 0V
+- Created HTTP endpoint on ESP8266
+- ESP32 successfully sends mock data and receives response
+
+---
+
+### Later Note (6/8/2025)
+Pump is **5V**, not 12V.  
+Single MT3608 can power entire mini-controller system.
+
+---
+
+## 27/7/2025
+
+### Electronics
+- Connected capacitive soil sensor → ESP8266
+
+### Communication
+- Created soil data endpoint
+- ESP32 successfully retrieves real soil value
+- Example reading: `645 / 1037`
+
+### Later Discovery (6/8/2025)
+Sensor values reversed from expectation:
+- ~637 in open air
+- Adding moisture lowers value
+- Therefore:
+  - 0 = very wet
+  - 1037 = very dry
+
+---
+
+## 28/7/2025
+- Refactored request handling
+- Switched GET → POST
+
+---
+
+## 29/7/2025
+- All HTTP communication switched to JSON
+- Added pump-start endpoint
+
+---
+
+## 31/7/2025
+
+### Hardware Progress
+- Pumps arrived
+- Soldered diode + pump wires
+- Connected to MOSFET screw terminals
+- Connected pump → MT3608
+- Prototype nearing full functionality
+
+---
+
+## To-Do (31/7)
+
+- Test full endpoint integration
+- Implement ESP32 deep sleep intervals
+- Design pump runtime algorithm
+- Analyze battery consumption
+- Finalize physical mounting prototype
+- Waterproof hose → container connection
+
+---
+
+## 1/8/2025
+
+### Voltage Correction
+- Adjusted MT3608 output to 5V
+- Confirmed pump operates at 5V
+
+### System Testing
+- Replaced mock data with real humidity readings
+
+---
+
+### Major Observations
+
+- Humidity values must be reversed
+- Benchmark currently set to 400
+- Open air returns ~637
+
+---
+
+### Bug Investigation
+
+**Issue:**
+If ESP8266 disconnects unexpectedly (short circuit scenario):
+- ESP32 stops sending HTTP requests
+- Loop cycle appears interrupted
+
+**However:**
+If battery is manually disconnected and reconnected:
+- ESP32 continues loop normally
+
+Possible causes:
+- Short circuit behavior
+- Unexpected blocking in request logic
+- Need further investigation
+
+---
+
+### Updated To-Do
+
+- Reverse humidity benchmark values
+- Implement deep sleep for ESP32
+- Test reconnection behavior
+- Test voltage spike when MOSFET turns OFF
+- Verify diode effectiveness
+
+---
+
+## 3/8/2025
+
+- Created schematics for Main + Mini controllers
+- Prepared PCB for Mini controller
+- Realized perfboard prototyping should be done before PCB
+
+---
+
+# Current Status
+
+- Communication working
+- Sensor reading working
+- Pump control working
+- Voltage configuration corrected
+- System stability + algorithm refinement pending
+
+---
+
+# Long-Term Goal
+
+- Fully stable automated watering system
+- Scalable architecture
+- Publish beginner-friendly electronics guide
